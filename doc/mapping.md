@@ -442,7 +442,7 @@ Create extended ORM event adapter:
         }
     }
 
-Create extended ORM event adapter:
+Create extended ODM event adapter:
 
     // file: vendor/Extension/Encoder/Mapping/Event/Adapter/ODM.php
     
@@ -461,4 +461,4 @@ Create extended ORM event adapter:
 It would be useful to make a common interface for those extended adapters.
 Now every possible requirement is fullfilled and this may be useful.
 
-Easy like that, any sugestions on improvements are very welcome
+Any suggestions on improvements are very welcome

@@ -67,9 +67,9 @@ class Yaml extends File implements Driver
     /**
      * {@inheritDoc}
      */
-    public function readExtendedMetadata(ClassMetadata $meta, array &$config) {
-        $yaml = $this->_loadMappingFile($this->_findMappingFile($meta->name));
-        $mapping = $yaml[$meta->name];
+    public function readExtendedMetadata(ClassMetadata $meta, array &$config)
+    {
+        $mapping = $this->_getMapping($meta->name);
 
         if (isset($mapping['gedmo'])) {
             $classMapping = $mapping['gedmo'];
@@ -111,11 +111,6 @@ class Yaml extends File implements Driver
                             throw new InvalidMappingException("Tree root field - [{$field}] type is not valid and must be 'integer' in class - {$meta->name}");
                         }
                         $config['root'] = $field;
-                    } elseif (in_array('treeChildCount', $fieldMapping['gedmo'])) {
-                        if (!$this->isValidField($meta, $field)) {
-                            throw new InvalidMappingException("Tree child count field - [{$field}] type is not valid and must be 'integer' in class - {$meta->name}");
-                        }
-                        $config['childCount'] = $field;
                     }
                 }
             }

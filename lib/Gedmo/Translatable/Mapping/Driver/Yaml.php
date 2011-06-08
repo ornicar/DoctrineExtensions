@@ -32,7 +32,7 @@ class Yaml extends File implements Driver
      */
     public function validateFullMetadata(ClassMetadata $meta, array $config)
     {
-        if (is_array($meta->identifier) && count($meta->identifier) > 1) {
+        if ($config && is_array($meta->identifier) && count($meta->identifier) > 1) {
             throw new InvalidMappingException("Translatable does not support composite identifiers in class - {$meta->name}");
         }
     }
@@ -40,9 +40,9 @@ class Yaml extends File implements Driver
     /**
      * {@inheritDoc}
      */
-    public function readExtendedMetadata(ClassMetadata $meta, array &$config) {
-        $yaml = $this->_loadMappingFile($this->_findMappingFile($meta->name));
-        $mapping = $yaml[$meta->name];
+    public function readExtendedMetadata(ClassMetadata $meta, array &$config)
+    {
+        $mapping = $this->_getMapping($meta->name);
 
         if (isset($mapping['gedmo'])) {
             $classMapping = $mapping['gedmo'];

@@ -25,17 +25,26 @@ use these extensions from separate branch **doctrine2.0.x** or simply checkout t
 
 ### Latest updates
 
+**2011-05-23**
+
+- Recently **doctrine-common** library changed the way for annotation mapping in branch **3.0.x**
+If you are a **Symfony2** user, you will notice that shortly. Extensions were upgraded to support
+injection of annotation reader into listener which makes them compatible with these changes. For more
+details look in **doc/annotations.md**
+
+**2011-05-07**
+
+- Tree **closure** strategy was refactored and now fully functional. Actually nested-set
+is performing faster during concurrent inserts and moving subtrees and it also supports
+ordering of nodes.
+- Also there are good news for ODM users, @mtotheikle is working on **materialized path**
+strategy for ODM Tree like documents.
+
 **2011-04-16**
 
 - Translation **query walker** is a killer feature for translatable extension. It lets to
 translate any query components and filter or order by translated fields. I recommmend you
 to use it extensively since it is very performative also.
-
-**2011-04-11**
-
-- **Tree nestedset** was improved, now all in memory nodes are synchronized and do not require `$em->clear()` all the time.
-If you have any problems with new feature, open an issue.
-- Extensions now use only one listener instance for different object managers
 
 ### ODM MongoDB support
 
@@ -49,6 +58,7 @@ List of extensions which support ODM
 All these extensions can be nested together. And most allready use only annotations without interface requirement
 to not to aggregate the entity itself and has implemented proper caching for metadata.
 
+**Notice:** extension tutorial on doctrine blog is outdated.
 There is a post introducing to these extensions on [doctrine project](http://www.doctrine-project.org/blog/doctrine2-behavioral-extensions "Doctrine2 behavior extensions")
 
 You can test these extensions on [my blog](http://gediminasm.org/test/ "Test doctrine behavior extensions").
@@ -62,14 +72,12 @@ to avoid triggering fatal error during the check of **class_exists**
 
 ### Running the tests:
 
-PHPUnit 3.4 or newer is required.
+PHPUnit 3.5 or newer is required.
 To setup and run tests follow these steps:
 
 - go to the root directory of extensions
 - run: **git submodule update --init**
-- go to tests directory: **cd tests**
-- run **cp phpunit.dist.xml phpunit.xml**
-- run: **phpunit**
+- run: **phpunit -c tests**
 - optional - run mongodb in background to complete all tests
 
 ### Contributors:

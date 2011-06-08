@@ -2,9 +2,8 @@
 
 namespace Gedmo\Translatable\Mapping\Driver;
 
-use Gedmo\Mapping\Driver,
+use Gedmo\Mapping\Driver\AnnotationDriverInterface,
     Doctrine\Common\Persistence\Mapping\ClassMetadata,
-    Doctrine\Common\Annotations\AnnotationReader,
     Gedmo\Exception\InvalidMappingException;
 
 /**
@@ -19,7 +18,7 @@ use Gedmo\Mapping\Driver,
  * @link http://www.gediminasm.org
  * @license MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
-class Annotation implements Driver
+class Annotation implements AnnotationDriverInterface
 {
     /**
      * Annotation to identity translation entity to be used for translation storage
@@ -44,11 +43,31 @@ class Annotation implements Driver
     const LANGUAGE = 'Gedmo\\Mapping\\Annotation\\Language';
 
     /**
+     * Annotation reader instance
+     *
+     * @var object
+     */
+    private $reader;
+
+    /**
+     * original driver if it is available
+     */
+    protected $_originalDriver = null;
+
+    /**
+     * {@inheritDoc}
+     */
+    public function setAnnotationReader($reader)
+    {
+        $this->reader = $reader;
+    }
+
+    /**
      * {@inheritDoc}
      */
     public function validateFullMetadata(ClassMetadata $meta, array $config)
     {
-        if (is_array($meta->identifier) && count($meta->identifier) > 1) {
+        if ($config && is_array($meta->identifier) && count($meta->identifier) > 1) {
             throw new InvalidMappingException("Translatable does not support composite identifiers in class - {$meta->name}");
         }
     }
@@ -57,15 +76,9 @@ class Annotation implements Driver
      * {@inheritDoc}
      */
     public function readExtendedMetadata(ClassMetadata $meta, array &$config) {
-        $reader = new AnnotationReader();
-        $reader->setAnnotationNamespaceAlias('Gedmo\\Mapping\\Annotation\\', 'gedmo');
-        $reader->setAutoloadAnnotations(true);
-
         $class = $meta->getReflectionClass();
         // class annotations
-        $classAnnotations = $reader->getClassAnnotations($class);
-        if (isset($classAnnotations[self::ENTITY_CLASS])) {
-            $annot = $classAnnotations[self::ENTITY_CLASS];
+        if ($annot = $this->reader->getClassAnnotation($class, self::ENTITY_CLASS)) {
             if (!class_exists($annot->class)) {
                 throw new InvalidMappingException("Translation class: {$annot->class} does not exist.");
             }
@@ -81,7 +94,7 @@ class Annotation implements Driver
                 continue;
             }
             // translatable property
-            if ($translatable = $reader->getPropertyAnnotation($property, self::TRANSLATABLE)) {
+            if ($translatable = $this->reader->getPropertyAnnotation($property, self::TRANSLATABLE)) {
                 $field = $property->getName();
                 if (!$meta->hasField($field)) {
                     throw new InvalidMappingException("Unable to find translatable [{$field}] as mapped property in entity - {$meta->name}");
@@ -90,13 +103,13 @@ class Annotation implements Driver
                 $config['fields'][] = $field;
             }
             // locale property
-            if ($locale = $reader->getPropertyAnnotation($property, self::LOCALE)) {
+            if ($locale = $this->reader->getPropertyAnnotation($property, self::LOCALE)) {
                 $field = $property->getName();
                 if ($meta->hasField($field)) {
                     throw new InvalidMappingException("Locale field [{$field}] should not be mapped as column property in entity - {$meta->name}, since it makes no sence");
                 }
                 $config['locale'] = $field;
-            } elseif ($language = $reader->getPropertyAnnotation($property, self::LANGUAGE)) {
+            } elseif ($language = $this->reader->getPropertyAnnotation($property, self::LANGUAGE)) {
                 $field = $property->getName();
                 if ($meta->hasField($field)) {
                     throw new InvalidMappingException("Language field [{$field}] should not be mapped as column property in entity - {$meta->name}, since it makes no sence");
@@ -104,5 +117,16 @@ class Annotation implements Driver
                 $config['locale'] = $field;
             }
         }
+    }
+
+    /**
+     * Passes in the mapping read by original driver
+     *
+     * @param $driver
+     * @return void
+     */
+    public function setOriginalDriver($driver)
+    {
+        $this->_originalDriver = $driver;
     }
 }

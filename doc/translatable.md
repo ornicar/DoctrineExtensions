@@ -8,8 +8,8 @@ for other cases through the **Entity** itself
 Features:
 
 - Automatic storage of translations in database
-- ORM and ODM support using same listener -Automatic translation of Entity or
-Document fields then loaded
+- ORM and ODM support using same listener
+- Automatic translation of Entity or Document fields then loaded
 - ORM query can use **hint** to translate all records without issuing additional queries
 - Can be nested with other behaviors
 - Annotation and Yaml mapping support for extensions
@@ -358,14 +358,13 @@ the slug, so the value as an additional translation should be processed when cre
 ### Example of multiple translations:
 
     // persisting multiple translations, assume default locale is EN
-    $repo = $em->getRepository('Gedmo\\Translatable\\Entity\\Translation');
+    $repository = $em->getRepository('Gedmo\\Translatable\\Entity\\Translation');
     // it works for ODM also
     $article = new Article;
     $article->setTitle('My article en');
     $article->setContent('content en');
 
-    $repo
-        ->translate($article, 'title', 'de', 'my article de')
+    $repository->translate($article, 'title', 'de', 'my article de')
         ->translate($article, 'content', 'de', 'content de')
         ->translate($article, 'title', 'ru', 'my article ru')
         ->translate($article, 'content', 'ru', 'content ru');
@@ -501,4 +500,4 @@ only if we specify a class annotation @gedmo:TranslationEntity(class="my\transla
 
 Now all translations of Article will be stored and queried from specific table
 
-Easy like that, any sugestions on improvements are very welcome
+Easy like that, any suggestions on improvements are very welcome

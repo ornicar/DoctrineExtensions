@@ -8,7 +8,10 @@ Features:
 
 - Automatic predifined date field update on creation, update and even on record property changes
 - ORM and ODM support using same listener
-- Specific annotations for properties, and no interface required -Can react to specific property or relation changes to specific value -Can be nested with other behaviors -Annotation and Yaml mapping support for extensions
+- Specific annotations for properties, and no interface required
+- Can react to specific property or relation changes to specific value 
+- Can be nested with other behaviors 
+- Annotation and Yaml mapping support for extensions
 
 [blog_test]: http://gediminasm.org/test "Test extensions on this blog"
 
@@ -421,4 +424,4 @@ Now few operations to get it all done:
     
     $article->getPublished()->format('Y-m-d'); // the date article type changed to published
 
-Easy like that, any sugestions on improvements are very welcome
+Easy like that, any suggestions on improvements are very welcome

@@ -5,17 +5,78 @@ There will be introduction on usage with examples. For more detailed usage
 on extensions, refer to their specific documentation.
 
 Content:
-    
+
+- [New annotation mapping](#annotation_mapping) example for common3.0.x
 - [Tree](#tree)
 - [Translatable](#translatable)
 - [Sluggable](#sluggable)
 - [Timestampable](#timestampable)
 - [Loggable](#loggable)
 
+## New annotation mapping example for common3.0.x {#annotation_mapping}
+
+Recently there was an upgrade made for annotation reader in order to support
+more native way for annotation mapping in **common3.0.x** branch. Before that
+you had to make aliases for namespaces (like __gedmo:Translatable__), this strategy
+was limited and errors were not explainable. Now you have to add a **use** statement
+for each annotation you use in your mapping, see example bellow:
+
+    namespace MyApp\Entity;
+    
+    use Gedmo\Mapping\Annotation as Gedmo; // this will be like an alias before
+    use Doctrine\ORM\Mapping\Id; // includes single annotation
+    use Doctrine\ORM\Mapping as ORM;
+    
+    /**
+     * @ORM\Entity
+     * @Gedmo\TranslationEntity(class="something")
+     */
+    class Article
+    {
+        /**
+         * @Id
+         * @ORM\GeneratedValue
+         * @ORM\Column(type="integer")
+         */
+        private $id;
+        
+        /**
+         * @Gedmo\Translatable
+         * @Gedmo\Sluggable
+         * @ORM\Column(length=64)
+         */
+        private $title;
+        
+        /**
+         * @Gedmo\Slug
+         * @ORM\Column(length=64, unique=true)
+         */
+        private $slug;
+    }
+
+**Note:** this new mapping applies only if you use **doctrine-common** library at version **3.0.x**
+
+### Injecting the new annotation reader
+
+New annotation reader does not depend on any namespaces, for that reason you can use
+single reader instance for whole project. The example bellow shows how to inject it into
+listener:
+
+    $annotationReader = new \Doctrine\Common\Annotations\AnnotationReader;
+    $translatable = new \Gedmo\Translatable\TranslationListener;
+    $translatable->setAnnotationReader($annotationReader);
+    $sluggable = new \Gedmo\Sluggable\SluggableListener;
+    $sluggable->setAnnotationReader($annotationReader);
+    // ...
+    $eventManager->addEventSubscriber($translatable);
+    $eventManager->addEventSubscriber($sluggable);
+    // ...
+
 ## Tree annotations {#tree}
 
 Tree can use diferent adapters. Currently **Tree** extension supports **NestedSet**
-and **Closure** strategies which has a difference for annotations used.
+and **Closure** strategies which has a difference for annotations used. Note, that 
+tree will automatically map indexes which are considered necessary for best performance.
 
 ### @gedmo:Tree (required for all tree strategies)
 
@@ -40,7 +101,7 @@ example:
 **property** annotation
 
 This annotation forces to specify the **parent** field, which must be a **ManyToOne**
-relation.
+relation
 
 example:
 
@@ -131,21 +192,6 @@ example:
      */
     class Category ...
 
-### @gedmo:TreeChildCount (optional for closure tree)
-
-**property** annotation
-
-This annotation will use **integer** field to store count of children for
-each node.
-
-example:
-
-    /**
-     * @gedmo:TreeChildCount
-     * @Column(name="child_count", type=integer)
-     */
-    private $childCount;
-
 ## Translatable annotations {#translatable}
 
 Translatable additionaly can have unmapped property, which would override the
@@ -210,6 +256,11 @@ table map to create correct ascii slugs.
 **property** annotation
 
 Includes the marked **string** type property into generation of slug.
+Additionaly can use **position** option to set field position is slug
+
+**options:**
+
+- **position** - (integer) _optional_
 
 example:
 
@@ -219,7 +270,7 @@ example:
      */
     private $code;
 
-### @gedmo:Sluggable (required)
+### @gedmo:Slug (required)
 
 **property** annotation
 
@@ -246,6 +297,8 @@ Timestampable will update date fields on create, update or property change. If y
 date manualy it will not update it.
 
 ### @gedmo:Timestampable (required)
+
+**property** annotation
 
 Marks a **date, datetime or time** field as timestampable.
 
@@ -275,4 +328,52 @@ example:
      * @ManyToOne(targetEntity="Status")
      */
     private $status;
+
+## Loggable annotations {#loggable}
+
+Loggable is used to log all actions made on annotated object class, it logs insert, update
+and remove actions for a username which currently is logged in for instance.
+Further more, it stores all **Versioned** property changes in the log which allows
+a version management implementation for this object.
+
+### @gedmo:Loggable (required)
+
+**class** annotation
+
+This class annotation marks object as being loggable and logs all actions being done to
+this class records.
+
+**options:**
+
+- **logEntryClass** - (string) _optional_ personal log storage class
+
+example:
+
+    /**
+     * @gedmo:Loggable(logEntryClass="Entity\ProductLogEntry")
+     * @Entity
+     */
+    class Product ...
+
+### @gedmo:Versioned (optional)
+
+**property** annotation
+
+Tracks the marked property for changes to be logged, can be set to single valued associations
+but not for collections. Using these log entries as revisions, objects can be reverted to
+a specific version.
+
+example:
+
+    /**
+     * @gedmo:Versioned
+     * @Column(type="text")
+     */
+    private $content;
+    
+    /**
+     * @gedmo:Versioned
+     * @ManyToOne(targetEntity="Article", inversedBy="comments")
+     */
+    private $article;
 

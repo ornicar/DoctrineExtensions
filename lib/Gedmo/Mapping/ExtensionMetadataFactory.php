@@ -2,9 +2,11 @@
 
 namespace Gedmo\Mapping;
 
-use Doctrine\Common\Persistence\ObjectManager,
-    Doctrine\Common\ClassLoader,
-    Doctrine\Common\Persistence\Mapping\ClassMetadata;
+use Doctrine\Common\Persistence\ObjectManager;
+use Doctrine\Common\Persistence\Mapping\ClassMetadata;
+use Gedmo\Mapping\Driver\File as FileDriver;
+use Gedmo\Mapping\Driver\AnnotationDriverInterface;
+use Doctrine\ORM\Tools\DisconnectedClassMetadataFactory;
 
 /**
  * The extension metadata factory is responsible for extension driver
@@ -16,13 +18,13 @@ use Doctrine\Common\Persistence\ObjectManager,
  * @link http://www.gediminasm.org
  * @license MIT License (http://www.opensource.org/licenses/mit-license.php)
  */
-class ExtensionMetadataFactory
+final class ExtensionMetadataFactory
 {
     /**
      * Extension driver
      * @var Gedmo\Mapping\Driver
      */
-    protected $driver;
+    private $driver;
 
     /**
      * Object manager, entity or document
@@ -38,14 +40,23 @@ class ExtensionMetadataFactory
     private $extensionNamespace;
 
     /**
+     * Custom annotation reader
+     *
+     * @var object
+     */
+    private $annotationReader;
+
+    /**
      * Initializes extension driver
      *
      * @param ObjectManager $objectManager
      * @param string $extensionNamespace
+     * @param object $annotationReader
      */
-    public function __construct(ObjectManager $objectManager, $extensionNamespace)
+    public function __construct(ObjectManager $objectManager, $extensionNamespace, $annotationReader)
     {
         $this->objectManager = $objectManager;
+        $this->annotationReader = $annotationReader;
         $this->extensionNamespace = $extensionNamespace;
         $omDriver = $objectManager->getConfiguration()->getMetadataDriverImpl();
         $this->driver = $this->getDriver($omDriver);
@@ -62,17 +73,32 @@ class ExtensionMetadataFactory
         if ($meta->isMappedSuperclass) {
             return; // ignore mappedSuperclasses for now
         }
-        $config = array();
+        $config = $supperclass = array();
+        $useObjectName = $meta->name;
         // collect metadata from inherited classes
-        foreach (array_reverse(class_parents($meta->name)) as $parentClass) {
-            // read only inherited mapped classes
-            if ($this->objectManager->getMetadataFactory()->hasMetadataFor($parentClass)) {
-                $this->driver->readExtendedMetadata($this->objectManager->getClassMetadata($parentClass), $config);
+        if (!$this->objectManager->getMetadataFactory() instanceof DisconnectedClassMetadataFactory) {
+            foreach (array_reverse(class_parents($meta->name)) as $parentClass) {
+                // read only inherited mapped classes
+                if ($this->objectManager->getMetadataFactory()->hasMetadataFor($parentClass)) {
+                    $class = $this->objectManager->getClassMetadata($parentClass);
+                    $partial = array();
+                    $this->driver->readExtendedMetadata($class, $partial);
+                    if ($class->isMappedSuperclass) {
+                        $supperclass += $partial;
+                    } elseif (!$class->isInheritanceTypeNone()) {
+                        $this->driver->validateFullMetadata($class, $supperclass + $partial);
+                        if ($partial) {
+                            $useObjectName = $class->name;
+                        }
+                    }
+                    $config += $partial;
+                }
             }
         }
         $this->driver->readExtendedMetadata($meta, $config);
         if ($config) {
             $this->driver->validateFullMetadata($meta, $config);
+            $config['useObjectClass'] = $useObjectName;
             // cache the metadata
             $cacheId = self::getCacheId($meta->name, $this->extensionNamespace);
             if ($cacheDriver = $this->objectManager->getMetadataFactory()->getCacheDriver()) {
@@ -124,8 +150,13 @@ class ExtensionMetadataFactory
                 }
             }
             $driver = new $driverClassName();
-            if ($driver instanceof \Gedmo\Mapping\Driver\File) {
+            $driver->setOriginalDriver($omDriver);
+            if ($driver instanceof FileDriver) {
                 $driver->setPaths($omDriver->getPaths());
+                $driver->setExtension($omDriver->getFileExtension());
+            }
+            if ($driver instanceof AnnotationDriverInterface) {
+                $driver->setAnnotationReader($this->annotationReader);
             }
         }
         return $driver;
